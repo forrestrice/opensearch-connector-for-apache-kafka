@@ -49,7 +49,15 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.VersionType;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 public class RecordConverter {
+
+    private static final String DATA_STREAM_TIMESTAMP_FIELD = "@timestamp";
+    private static final String DEFAULT_TIMESTAMP_FIELD = "timestamp";
 
     private static final Converter JSON_CONVERTER;
 
@@ -59,6 +67,7 @@ public class RecordConverter {
     }
 
     private final OpensearchSinkConnectorConfig config;
+    private final ObjectMapper objectMapper;
 
     public RecordConverter(final Boolean useCompactMapEntries,
                            final RecordConverter.BehaviorOnNullValues behaviorOnNullValues) {
@@ -67,6 +76,7 @@ public class RecordConverter {
 
     public RecordConverter(final OpensearchSinkConnectorConfig config) {
         this.config = config;
+        this.objectMapper = new ObjectMapper();
     }
 
     private String convertKey(final Schema keySchema, final Object key) {
@@ -141,15 +151,38 @@ public class RecordConverter {
             return addExternalVersionIfNeeded(new DeleteRequest(index).id(id), record);
         }
 
-        final String payload = getPayload(record);
+        String payload = getPayload(record);
+        if (config.dataStream()) {
+            payload = addTimestamp(payload, record.timestamp());
+        }
+
+        final DocWriteRequest.OpType opType = config.dataStream()
+                ? DocWriteRequest.OpType.CREATE
+                : DocWriteRequest.OpType.INDEX;
         return addExternalVersionIfNeeded(new IndexRequest(index)
                 .id(id)
                 .source(payload, XContentType.JSON)
-                .opType(DocWriteRequest.OpType.INDEX), record);
+                .opType(opType), record);
+    }
+
+    private String addTimestamp(final String payload, final Long timestamp) {
+        try {
+            final JsonNode jsonNode = objectMapper.readTree(payload);
+            if (jsonNode.has(DEFAULT_TIMESTAMP_FIELD)) {
+                ((ObjectNode) jsonNode).put(
+                        DATA_STREAM_TIMESTAMP_FIELD,
+                        jsonNode.get(DEFAULT_TIMESTAMP_FIELD).asText());
+            } else {
+                ((ObjectNode) jsonNode).put(DATA_STREAM_TIMESTAMP_FIELD, timestamp);
+            }
+            return objectMapper.writeValueAsString(jsonNode);
+        } catch (final JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private DocWriteRequest<?> addExternalVersionIfNeeded(final DocWriteRequest<?> request, final SinkRecord record) {
-        if (!config.ignoreKeyFor(record.topic())) {
+        if (!config.ignoreKeyFor(record.topic()) && !config.dataStream()) {
             request.versionType(VersionType.EXTERNAL);
             request.version(record.kafkaOffset());
         }

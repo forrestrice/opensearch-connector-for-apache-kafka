@@ -106,7 +106,9 @@ public class OpensearchSinkTask extends SinkTask {
     }
 
     private void tryWriteRecord(final SinkRecord record) {
-        final var index = convertTopicToIndexName(record.topic());
+        final var index = config.dataStream()
+                ? convertTopicToDataStreamName(record.topic(), config.dataStreamName())
+                : convertTopicToIndexName(record.topic());
         ensureIndexExists(index);
         checkMappingFor(index, record);
         try {
@@ -133,7 +135,7 @@ public class OpensearchSinkTask extends SinkTask {
      * Converts topic name to index name according OS rules:
      * https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html#indices-create-api-path-params
      */
-    protected String convertTopicToIndexName(final String topic) {
+    protected static String convertTopicToIndexName(final String topic) {
         var indexName = topic.toLowerCase();
         if (indexName.length() > 255) {
             indexName = indexName.substring(0, 255);
@@ -154,11 +156,20 @@ public class OpensearchSinkTask extends SinkTask {
         return indexName;
     }
 
+    protected static String convertTopicToDataStreamName(final String topic, final String dataStreamName) {
+        return dataStreamName + "-" + convertTopicToIndexName(topic);
+    }
+
 
     private void ensureIndexExists(final String index) {
         if (!indexCache.contains(index)) {
-            LOGGER.info("Create index {}", index);
-            client.createIndex(index);
+            if (config.dataStream()) {
+                LOGGER.info("Create datastream {}", index);
+                client.createDataStream(index);
+            } else {
+                LOGGER.info("Create index {}", index);
+                client.createIndex(index);
+            }
             indexCache.add(index);
         }
     }

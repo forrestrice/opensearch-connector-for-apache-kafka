@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
 
 import static io.aiven.kafka.connect.opensearch.RetryUtil.callWithRetry;
 
+
 public class BulkProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BulkProcessor.class);
@@ -99,16 +100,16 @@ public class BulkProcessor {
         final ThreadFactory threadFactory = makeThreadFactory();
         farmer = threadFactory.newThread(farmerTask());
         executor = Executors.newFixedThreadPool(config.maxInFlightRequests(), threadFactory);
-        
+
         if (!config.ignoreKey() && config.behaviorOnVersionConflict() == BehaviorOnVersionConflict.FAIL) {
             LOGGER.warn("The {} is set to `false` which assumes external version and optimistic locking."
-                    + " You may consider changing the configuration property '{}' from '{}' to '{}' or '{}'"
-                    + " to deal with possible version conflicts.",
-                OpensearchSinkConnectorConfig.KEY_IGNORE_CONFIG,
-                OpensearchSinkConnectorConfig.BEHAVIOR_ON_VERSION_CONFLICT_CONFIG,
-                BehaviorOnMalformedDoc.FAIL,
-                BehaviorOnMalformedDoc.IGNORE,
-                BehaviorOnMalformedDoc.WARN);
+                            + " You may consider changing the configuration property '{}' from '{}' to '{}' or '{}'"
+                            + " to deal with possible version conflicts.",
+                    OpensearchSinkConnectorConfig.KEY_IGNORE_CONFIG,
+                    OpensearchSinkConnectorConfig.BEHAVIOR_ON_VERSION_CONFLICT_CONFIG,
+                    BehaviorOnMalformedDoc.FAIL,
+                    BehaviorOnMalformedDoc.IGNORE,
+                    BehaviorOnMalformedDoc.WARN);
         }
     }
 
@@ -382,7 +383,7 @@ public class BulkProcessor {
                             } else {
                                 throw new RuntimeException(
                                         "One of the item in the bulk response failed. Reason: "
-                                            + itemResponse.getFailureMessage());
+                                                + itemResponse.getFailureMessage());
                             }
                         } else {
                             throw new ConnectException(
@@ -455,7 +456,7 @@ public class BulkProcessor {
             }
         }
     }
-    
+
     private boolean responseContainsVersionConflict(final BulkItemResponse bulkItemResponse) {
         return bulkItemResponse.getFailure().getStatus() == RestStatus.CONFLICT
                 || bulkItemResponse.getFailureMessage().contains("version_conflict_engine_exception");
@@ -543,7 +544,7 @@ public class BulkProcessor {
             return name().toLowerCase(Locale.ROOT);
         }
     }
-    
+
     public enum BehaviorOnVersionConflict {
         IGNORE,
         WARN,

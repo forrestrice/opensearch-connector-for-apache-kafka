@@ -154,11 +154,16 @@ public class OpensearchSinkConnectorConfig extends AbstractConfig {
             + "Opensearch rejects due to some malformation of the document itself, such as an index"
             + " mapping conflict or a field name containing illegal characters. Valid options are "
             + "'ignore', 'warn', and 'fail'.";
-    
+
     public static final String BEHAVIOR_ON_VERSION_CONFLICT_CONFIG = "behavior.on.version.conflict";
     private static final String BEHAVIOR_ON_VERSION_CONFLICT_DOC = "How to handle records that "
             + "Opensearch rejects due to version conflicts (if optimistic locking mechanism has been"
             + "activated). Valid options are 'ignore', 'warn', and 'fail'.";
+
+    public static final String DATA_STREAM_NAME_CONFIG = "data.stream.name";
+    private static final String DATA_STREAM_NAME_DOC = "If set then write to a data stream of this name rather than an "
+            + "index.";
+    private static final String DATA_STREAM_NAME_DISPLAY = "Data Stream Name";
 
     protected static ConfigDef baseConfigDef() {
         final ConfigDef configDef = new ConfigDef();
@@ -175,8 +180,7 @@ public class OpensearchSinkConnectorConfig extends AbstractConfig {
                 Type.LIST,
                 ConfigDef.NO_DEFAULT_VALUE,
                 (name, value) -> {
-                    @SuppressWarnings("unchecked")
-                    final var urls = (List<String>) value;
+                    @SuppressWarnings("unchecked") final var urls = (List<String>) value;
                     for (final var url : urls) {
                         try {
                             new URL(url);
@@ -300,7 +304,18 @@ public class OpensearchSinkConnectorConfig extends AbstractConfig {
                 group,
                 ++order,
                 Width.SHORT,
-                "Read Timeout");
+                "Read Timeout"
+        ).define(
+                DATA_STREAM_NAME_CONFIG,
+                Type.STRING,
+                null,
+                Importance.LOW,
+                DATA_STREAM_NAME_DOC,
+                group,
+                ++order,
+                Width.LONG,
+                DATA_STREAM_NAME_DISPLAY
+        );
     }
 
     private static void addConversionConfigs(final ConfigDef configDef) {
@@ -408,7 +423,8 @@ public class OpensearchSinkConnectorConfig extends AbstractConfig {
                 group,
                 ++order,
                 Width.SHORT,
-                "Behavior on document's version conflict (optimistic locking)");
+                "Behavior on document's version conflict (optimistic locking)"
+        );
     }
 
     public static final ConfigDef CONFIG = baseConfigDef();
@@ -524,6 +540,14 @@ public class OpensearchSinkConnectorConfig extends AbstractConfig {
 
     public boolean ignoreSchemaFor(final String topic) {
         return ignoreSchema() || topicIgnoreSchema().contains(topic);
+    }
+
+    public boolean dataStream() {
+        return dataStreamName() != null;
+    }
+
+    public String dataStreamName() {
+        return getString(OpensearchSinkConnectorConfig.DATA_STREAM_NAME_CONFIG);
     }
 
     public RecordConverter.BehaviorOnNullValues behaviorOnNullValues() {

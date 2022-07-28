@@ -26,28 +26,26 @@ public class OpensearchSinkTaskTest {
     @Test
     void convertTopicToIndexName() {
 
-        final var task = new OpensearchSinkTask();
-
         final var longTopicName = "a".repeat(260);
-        assertEquals("a".repeat(255), task.convertTopicToIndexName(longTopicName));
+        assertEquals("a".repeat(255), OpensearchSinkTask.convertTopicToIndexName(longTopicName));
 
         final var colonTopicName = "a:b:c";
-        assertEquals("a_b_c", task.convertTopicToIndexName(colonTopicName));
+        assertEquals("a_b_c", OpensearchSinkTask.convertTopicToIndexName(colonTopicName));
 
         final var minusTopicName = "-minusTopicName";
-        assertEquals("minustopicname", task.convertTopicToIndexName(minusTopicName));
+        assertEquals("minustopicname", OpensearchSinkTask.convertTopicToIndexName(minusTopicName));
 
         final var plusTopicName = "+plusTopicName";
-        assertEquals("plustopicname", task.convertTopicToIndexName(plusTopicName));
+        assertEquals("plustopicname", OpensearchSinkTask.convertTopicToIndexName(plusTopicName));
 
         final var underscoreTopicName = "_underscoreTopicName";
-        assertEquals("underscoretopicname", task.convertTopicToIndexName(underscoreTopicName));
+        assertEquals("underscoretopicname", OpensearchSinkTask.convertTopicToIndexName(underscoreTopicName));
 
         final var dotTopicName = ".";
-        assertEquals("dot", task.convertTopicToIndexName(dotTopicName));
+        assertEquals("dot", OpensearchSinkTask.convertTopicToIndexName(dotTopicName));
 
         final var dotDotTopicName = "..";
-        assertEquals("dotdot", task.convertTopicToIndexName(dotDotTopicName));
+        assertEquals("dotdot", OpensearchSinkTask.convertTopicToIndexName(dotDotTopicName));
 
     }
 

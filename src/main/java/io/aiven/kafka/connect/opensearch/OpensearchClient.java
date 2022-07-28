@@ -34,6 +34,7 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
+import org.opensearch.client.indices.CreateDataStreamRequest;
 import org.opensearch.client.indices.CreateIndexRequest;
 import org.opensearch.client.indices.GetIndexRequest;
 import org.opensearch.client.indices.GetMappingsRequest;
@@ -127,6 +128,24 @@ public class OpensearchClient implements AutoCloseable {
                         return false;
                     }
                 });
+    }
+
+    public boolean createDataStream(final String dataStream) {
+        final CreateDataStreamRequest request = new CreateDataStreamRequest(dataStream);
+        return withRetry(
+                String.format("create datastream %s", dataStream),
+                () -> {
+                    try {
+                        client.indices().createDataStream(request, RequestOptions.DEFAULT);
+                    } catch (OpenSearchStatusException | IOException e) {
+                        if (!e.getMessage().contains(RESOURCE_ALREADY_EXISTS_EXCEPTION)) {
+                            throw e;
+                        }
+                        return false;
+                    }
+                    return true;
+                }
+        );
     }
 
     public void createMapping(final String index, final Schema schema) {
